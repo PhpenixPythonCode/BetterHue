@@ -1,0 +1,18 @@
+#light-list{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+}
+
+.light{
+    padding: 15px;
+    cursor: pointer;
+    border-radius: 7px;
+    margin: 7px;
+    width: 400px;
+    min-width: 400px;
+    transition: 300ms;
+}
+
+.light:hover{
+    background-color: rgba(0,0,0,0.2);
+}
