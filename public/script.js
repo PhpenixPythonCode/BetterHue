@@ -7,39 +7,119 @@ function getList(){
         return JSON.parse(request.responseText)
     }
 }
+function hexToRgb(hex) {
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+}
+function componentToHex(c) {
+  var hex = c.toString(16);
+  return hex.length == 1 ? "0" + hex : hex;
+}
 
+function rgbToHex(r, g, b) {
+  return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+}
 function load(){
     const lightJSON = getList()
     Object.keys(lightJSON).forEach(key => {
         const light = lightJSON[key]
-
+        
+        const lightFrame = document.createElement('div')
         const lightDiv = document.createElement('div')
-        lightDiv.innerText = light.name
+        const lightName = document.createElement('div')
+        const lightHex = document.createElement('div')
+        const lightModel = document.createElement('div')
+        const powerToggle = document.createElement('label')
+        powerToggle.classList = 'switch'
+        powerToggle.id = key+'-switch'
+        const checkbox = document.createElement('input')
+        checkbox.type = 'checkbox'
+        powerToggle.appendChild(checkbox)
+        const slider = document.createElement('span')
+        slider.classList = 'slider round'
+        powerToggle.appendChild(slider)
+        lightDiv.appendChild(powerToggle)
+        lightDiv.appendChild(lightName)
+        lightDiv.appendChild(lightHex)
+        lightDiv.appendChild(lightModel)
+        lightModel.innerText = light.productname
+        lightName.innerText = light.name
+        lightName.classList = 'light-name'
+        lightHex.classList = 'light-hex'
+        lightModel.classList = 'light-model'
+        const colorPicker = document.createElement('input')
+        var isOn
+        if(light.state.on == true){ 
+            isOn = '#ffffff'
+            checkbox.checked = true
+        }
+        else isOn = '#000000'
         if(light.state.xy){
             var x = light.state.xy[0]
             var y = light.state.xy[1]
-            lightDiv.style.backgroundColor = xyBriToRgb(x, y, light.state.bri)
-            if(lightOrDark(xyBriToRgb(x, y, light.state.bri)) == 'light'){
-                lightDiv.style.color = '#000'
-                console.log('light')
-            }else{
-                lightDiv.style.color = '#fff'
-                console.log('dark')
-            }
+            lightHex.innerText = xyBriToRgb(x, y, light.state.bri)
+            lightDiv.style.backgroundImage = `linear-gradient(${isOn}, ${xyBriToRgb(x, y, light.state.bri)})`
+            colorPicker.value = xyBriToRgb(x, y, light.state.bri)
+            
         }
         if(light.state.on == false){
-            lightDiv.style.backgroundColor = '#000000'
+            lightDiv.style.backgroundColor = '#525252'
             lightDiv.style.color = "#ffffff"
         }
+
+        colorPicker.type = 'color'
+        colorPicker.oninput = () => {
+            changeColor(colorPicker.value, light.modelid, key)
+            lightDiv.style.background = `linear-gradient(${isOn}, ${colorPicker.value})`
+        }
+        
+        const seperator = document.createElement('hr')
         
         lightDiv.classList.add('light')
-        document.getElementById("light-list").appendChild(lightDiv)
+        document.getElementById("light-list").appendChild(lightFrame)
+        lightFrame.appendChild(lightDiv)
+        lightDiv.appendChild(colorPicker)
+        colorPicker.classList = 'color-picker'
         var lightOn = light.state.on
-        lightDiv.onclick = () => {
+        powerToggle.onclick = () => {
             toggleLight(key, lightOn)
+        }
+        if(light.state.reachable == false){
+            lightFrame.style.opacity = 0.4
+            lightDiv.style.cursor = 'no-drop'
+            lightDiv.style.boxShadow = 'inset 4.0px 8.0px 8.0px hsl(0deg 0% 0% / 0.38)'
+            colorPicker.style.cursor = 'no-drop'
+            slider.style.cursor = 'no-drop'
+            powerToggle.onclick = 'console.log("unavailable")'
+            lightDiv.title = 'Unreachable'
+            colorPicker.setAttribute("disabled", "disabled")
+            checkbox.setAttribute("disabled", "disabled")
         }
         lightDiv.setAttribute("id", key)
     });
+}
+
+function changeColor(hex, model, key){
+    var rgb = hexToRgb(hex)
+    
+    var http = new XMLHttpRequest();
+    var url = '/changecolor';
+    var params = `key=${key}&r=${rgb.r}&g=${rgb.g}&b=${rgb.b}&model=${model}`;
+    http.open('POST', url, true);
+
+    http.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+
+    http.onreadystatechange = function() {
+        if(http.readyState == 4 && http.status == 200) {
+            const lightDiv = document.getElementById(key)
+            console.log(http.responseText);
+        }
+    }
+    http.send(params);
 }
 
 function toggleLight(key, lightOn){
@@ -68,12 +148,16 @@ function turnOnLight(key){
             request.send(null);
 
             if (request.status === 200) {
+                const powerToggle = document.getElementById(key+'-switch')
                 var light = JSON.parse(request.responseText)
                 const lightDiv = document.getElementById(key)
+                var isOn
+                if(light.state.on == true) isOn = '#ffffff'
+                else isOn = '#000000'
                 if(light.state.xy){
                     var x = light.state.xy[0]
                     var y = light.state.xy[1]
-                    lightDiv.style.backgroundColor = xyBriToRgb(x, y, light.state.bri)
+                    lightDiv.style.backgroundImage = `linear-gradient(${isOn}, ${xyBriToRgb(x, y, light.state.bri)})`
                     if(lightOrDark(xyBriToRgb(x, y, light.state.bri)) == 'light'){
                         lightDiv.style.color = '#000'
                         console.log('light')
@@ -83,11 +167,12 @@ function turnOnLight(key){
                     }
                 }
                 if(light.state.on == false){
-                    lightDiv.style.backgroundColor = '#000000'
                     lightDiv.style.color = "#ffffff"
+                }else{
+                    lightDiv.style.color = "#000000"
                 }
                 var lightOn = light.state.on
-                lightDiv.onclick = () => {
+                powerToggle.onclick = () => {
                     toggleLight(key, lightOn)
                 }
             }
@@ -106,6 +191,8 @@ function turnOffLight(key){
 
     http.onreadystatechange = function() {
         if(http.readyState == 4 && http.status == 200) {
+            const powerToggle = document.getElementById(key+'-switch')
+
             console.log(http.responseText);
             
             var request = new XMLHttpRequest();
@@ -115,24 +202,23 @@ function turnOffLight(key){
             if (request.status === 200) {
                 var light = JSON.parse(request.responseText)
                 const lightDiv = document.getElementById(key)
+                var isOn
+                if(light.state.on == true) isOn = '#ffffff'
+                else isOn = '#000000'
                 if(light.state.xy){
                     var x = light.state.xy[0]
                     var y = light.state.xy[1]
-                    lightDiv.style.backgroundColor = xyBriToRgb(x, y, light.state.bri)
-                    if(lightOrDark(xyBriToRgb(x, y, light.state.bri)) == 'light'){
-                        lightDiv.style.color = '#000'
-                        console.log('light')
-                    }else{
-                        lightDiv.style.color = '#fff'
-                        console.log('dark')
-                    }
+                    lightDiv.style.backgroundImage = `linear-gradient(${isOn}, ${xyBriToRgb(x, y, light.state.bri)})`
+                    
                 }
                 if(light.state.on == false){
                     lightDiv.style.backgroundColor = '#000000'
                     lightDiv.style.color = "#ffffff"
+                }else{
+                    lightDiv.style.color = "#000000"
                 }
                 var lightOn = light.state.on
-                lightDiv.onclick = () => {
+                powerToggle.onclick = () => {
                     toggleLight(key, lightOn)
                 }
             }

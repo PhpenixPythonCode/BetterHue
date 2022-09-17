@@ -3,6 +3,7 @@ const axios = require('axios')
 const express = require('express')
 var app = express()
 const bodyParser = require('body-parser')
+var converter = require('@q42philips/hue-color-converter');
 
 app.use(express.static('public'))
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -34,7 +35,7 @@ app.post('/lightoff', (req,res) => {
 
 app.post('/changecolor', (req,res) => {
     console.log(req.body)
-    axios.put(`http://${process.env.IP}/api/${process.env.NAME}/lights/${req.body.key}/state`, {"on": true, "sat": parseInt(req.body.sat), "bri": parseInt(req.body.bri), "hue": parseInt(req.body.hue)})
+    axios.put(`http://${process.env.IP}/api/${process.env.NAME}/lights/${req.body.key}/state`, {"xy": converter.calculateXY(req.body.r, req.body.g, req.body.b, req.body.model)})
     .then(function (response) {
         res.send('Light has been changed')
     })
@@ -49,4 +50,3 @@ app.listen(3000, (err) => {
     }
 })
 
-console.log(`http://${process.env.IP}/api/${process.env.NAME}/lights`)
