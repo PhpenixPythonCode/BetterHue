@@ -56,6 +56,7 @@ function load(){
         if(light.state.on == true){ 
             isOn = '#ffffff'
             checkbox.checked = true
+            lightDiv.style.background = 'white'
         }
         else isOn = '#000000'
         if(light.state.xy){
@@ -67,7 +68,7 @@ function load(){
             
         }
         if(light.state.on == false){
-            lightDiv.style.backgroundColor = '#525252'
+            lightDiv.style.background = '#525252'
             lightDiv.style.color = "#ffffff"
         }
 
@@ -154,6 +155,13 @@ function turnOnLight(key){
                 var isOn
                 if(light.state.on == true) isOn = '#ffffff'
                 else isOn = '#000000'
+                if(light.state.on == false){
+                    lightDiv.style.color = "#ffffff"
+                    lightDiv.style.background = '#525252'
+                }else{
+                    lightDiv.style.color = "#000000"
+                    lightDiv.style.backgroundImage = `linear-gradient(${isOn}, white)`
+                }
                 if(light.state.xy){
                     var x = light.state.xy[0]
                     var y = light.state.xy[1]
@@ -166,11 +174,7 @@ function turnOnLight(key){
                         console.log('dark')
                     }
                 }
-                if(light.state.on == false){
-                    lightDiv.style.color = "#ffffff"
-                }else{
-                    lightDiv.style.color = "#000000"
-                }
+                
                 var lightOn = light.state.on
                 powerToggle.onclick = () => {
                     toggleLight(key, lightOn)
@@ -212,8 +216,8 @@ function turnOffLight(key){
                     
                 }
                 if(light.state.on == false){
-                    lightDiv.style.backgroundColor = '#000000'
                     lightDiv.style.color = "#ffffff"
+                    lightDiv.style.background = '#525252'
                 }else{
                     lightDiv.style.color = "#000000"
                 }
