@@ -4,8 +4,32 @@ const express = require('express')
 var app = express()
 const bodyParser = require('body-parser')
 var converter = require('@q42philips/hue-color-converter');
+const { Server } = require("socket.io");
+const path = require('path')
+app.use(express.static(path.join(__dirname, '/')))
 
-app.use(express.static('public'))
+var server = app.listen(3000, (err) => {
+    if(err){
+        console.error(err)
+        throw err
+    }else{
+        console.log('Server listening on port 3000 (http://127.0.0.1:3000/)')
+    }
+})
+var socket = require('socket.io')
+var io = socket(server)
+
+io.on("connection", (socket) => {
+    setInterval(() => {
+        axios.get(`http://${process.env.IP}/api/${process.env.NAME}/lights`)
+            .then(function (response) {
+                socket.emit("change", response.data);
+            })
+    }, 1500)
+    
+});
+
+// app.use(express.static(''))
 app.use(bodyParser.urlencoded({ extended: false }))
 
 app.get('/', (req,res) => {
@@ -39,14 +63,5 @@ app.post('/changecolor', (req,res) => {
     .then(function (response) {
         res.send('Light has been changed')
     })
-})
-
-app.listen(3000, (err) => {
-    if(err){
-        console.error(err)
-        throw err
-    }else{
-        console.log('Server listening on port 3000 (http://127.0.0.1:3000/)')
-    }
 })
 

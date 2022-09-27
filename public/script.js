@@ -1,3 +1,5 @@
+
+
 function getList(){
     var request = new XMLHttpRequest();
     request.open('GET', '/getlightjson', false);
@@ -23,8 +25,10 @@ function componentToHex(c) {
 function rgbToHex(r, g, b) {
   return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
 }
+var oldData
 function load(){
     const lightJSON = getList()
+    oldData = lightJSON
     Object.keys(lightJSON).forEach(key => {
         const light = lightJSON[key]
         
@@ -74,8 +78,10 @@ function load(){
 
         colorPicker.type = 'color'
         colorPicker.oninput = () => {
-            changeColor(colorPicker.value, light.modelid, key)
             lightDiv.style.background = `linear-gradient(${isOn}, ${colorPicker.value})`
+        }
+        colorPicker.onchange = () => {
+            changeColor(colorPicker.value, light.modelid, key)
         }
         
         const seperator = document.createElement('hr')
@@ -313,3 +319,12 @@ function xyBriToRgb(x, y, bri)
 }
 
 load()
+
+socket.on("change", (arg) => {
+    if(JSON.stringify(arg) == JSON.stringify(oldData)){
+        
+    }else{
+        document.getElementById('light-list').innerHTML = ''
+        load()
+    }
+});
